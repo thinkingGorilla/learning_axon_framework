@@ -20,8 +20,7 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class ElephantService {
 
-    // Axon Framework에서 메세지를 송수신하는 class들은 반드시 'transient' 키워드를 붙여야 한다.
-    private final transient CommandGateway commandGateway;
+    private final CommandGateway commandGateway;
     private final ElephantRepository elephantRepository;
 
     public ElephantService(CommandGateway commandGateway, ElephantRepository elephantRepository) {

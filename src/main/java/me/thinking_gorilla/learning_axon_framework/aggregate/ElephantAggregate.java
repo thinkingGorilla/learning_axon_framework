@@ -1,9 +1,11 @@
 package me.thinking_gorilla.learning_axon_framework.aggregate;
 
 import lombok.extern.slf4j.Slf4j;
+import me.thinking_gorilla.learning_axon_framework.command.BackToReadyCommand;
 import me.thinking_gorilla.learning_axon_framework.command.CreateElephantCommand;
 import me.thinking_gorilla.learning_axon_framework.command.EnterElephantCommand;
 import me.thinking_gorilla.learning_axon_framework.command.ExitElephantCommand;
+import me.thinking_gorilla.learning_axon_framework.events.BackToReadyCompletedEvent;
 import me.thinking_gorilla.learning_axon_framework.events.CreateElephantEvent;
 import me.thinking_gorilla.learning_axon_framework.events.EnteredElephantEvent;
 import me.thinking_gorilla.learning_axon_framework.events.ExitedElephantEvent;
@@ -56,6 +58,12 @@ public class ElephantAggregate {
         AggregateLifecycle.apply(new ExitedElephantEvent(cmd.getId(), cmd.getStatus()));
     }
 
+    @CommandHandler
+    private void handle(BackToReadyCommand cmd) {
+        log.info("[@CommandHandler 'BackToReadyCommand'] for Id: {}", cmd.getId());
+        AggregateLifecycle.apply(new BackToReadyCompletedEvent(cmd.getId(), cmd.getStatus()));
+    }
+
     @EventSourcingHandler
     private void on(CreateElephantEvent event) {
         log.info("[@EventSourcingHandler 'CreateElephantEvent'] for Id: {}", event.getId());
@@ -80,4 +88,11 @@ public class ElephantAggregate {
         this.status = event.getStatus();
         log.info("======== [꺼내기] 최종 코끼리 상태: {}", this.status);
     }
+
+    @EventSourcingHandler
+    private void on(BackToReadyCompletedEvent event) {
+        log.info("[@EventSourcingHandler 'BackToReadyCompletedEvent'] for Id: {}", event.getId());
+        this.status = event.getStatus();
+    }
+
 }
