@@ -2,12 +2,17 @@ package me.thinking_gorilla.learning_axon_framework.events;
 
 import lombok.extern.slf4j.Slf4j;
 import me.thinking_gorilla.learning_axon_framework.command.BackToReadyCommand;
-import me.thinking_gorilla.learning_axon_framework.command.CreateElephantCommand;
+import me.thinking_gorilla.learning_axon_framework.command.CreateEnterCountCommand;
+import me.thinking_gorilla.learning_axon_framework.command.UpdateEnterCountCommand;
 import me.thinking_gorilla.learning_axon_framework.dto.StatusEnum;
 import me.thinking_gorilla.learning_axon_framework.entity.Elephant;
 import me.thinking_gorilla.learning_axon_framework.repository.ElephantRepository;
+import me.thinking_gorilla.learning_axon_framework.repository.EnterCountRepository;
 import org.axonframework.commandhandling.gateway.CommandGateway;
+import org.axonframework.config.ProcessingGroup;
+import org.axonframework.eventhandling.AllowReplay;
 import org.axonframework.eventhandling.EventHandler;
+import org.axonframework.eventhandling.ResetHandler;
 import org.axonframework.eventhandling.gateway.EventGateway;
 import org.springframework.stereotype.Component;
 
@@ -15,16 +20,24 @@ import java.util.Optional;
 
 @Slf4j
 @Component
+@ProcessingGroup("elephant")
+@AllowReplay
 public class ElephantEventHandler {
 
+    private final CommandGateway commandGateway;
     private final EventGateway eventGateway;
     private final ElephantRepository elephantRepository;
-    private final CommandGateway commandGateway;
+    private final EnterCountRepository enterCountRepository;
 
-    public ElephantEventHandler(EventGateway eventGateway, ElephantRepository elephantRepository, CommandGateway commandGateway) {
+    public ElephantEventHandler(CommandGateway commandGateway,
+                                EventGateway eventGateway,
+                                ElephantRepository elephantRepository,
+                                EnterCountRepository enterCountRepository) {
+
+        this.commandGateway = commandGateway;
         this.eventGateway = eventGateway;
         this.elephantRepository = elephantRepository;
-        this.commandGateway = commandGateway;
+        this.enterCountRepository = enterCountRepository;
     }
 
     @EventHandler
@@ -40,6 +53,14 @@ public class ElephantEventHandler {
 
         try {
             elephantRepository.save(elephant);
+
+            // CreateEnterCountCommand 생성
+            commandGateway.send(CreateEnterCountCommand.builder()
+                    .countId("COUNT_" + event.getId())
+                    .elephantId(event.getId())
+                    .count(0)
+                    .build()
+            );
         } catch (Exception e) {
             log.info(e.getMessage());
         }
@@ -58,6 +79,14 @@ public class ElephantEventHandler {
                 eventGateway.publish(new FailedElephantEvent(event.getId()));
                 return;
             }
+
+            // UpdateEnterCountCommand 생성
+            commandGateway.send(UpdateEnterCountCommand.builder()
+                    .countId("COUNT_" + event.getId())
+                    .elephantId(event.getId())
+                    .count(1)
+                    .build()
+            );
 
             elephantRepository.save(elephant);
         }
@@ -97,9 +126,15 @@ public class ElephantEventHandler {
         }
     }
 
-
     private Elephant getEntity(String id) {
         Optional<Elephant> optElephant = elephantRepository.findById(id);
         return optElephant.orElse(null);
+    }
+
+    @ResetHandler
+    private void replayAll() {
+        log.info("[@ResetHandler] Executing replayAll");
+        elephantRepository.deleteAll();
+        enterCountRepository.deleteAll();
     }
 }

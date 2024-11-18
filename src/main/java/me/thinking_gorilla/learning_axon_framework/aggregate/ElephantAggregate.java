@@ -17,7 +17,7 @@ import org.axonframework.modelling.command.AggregateMember;
 import org.axonframework.spring.stereotype.Aggregate;
 
 @Slf4j
-@Aggregate
+@Aggregate(snapshotTriggerDefinition = "snapshotTrigger", cache = "snapshotCache")
 public class ElephantAggregate {
     @AggregateIdentifier
     private String id;
